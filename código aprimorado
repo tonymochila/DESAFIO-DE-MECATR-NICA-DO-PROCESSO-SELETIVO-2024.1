@@ -1,0 +1,150 @@
+String entrada,nome;
+// definição de pinos
+#define trigger 10
+#define echo 9
+#define red 12
+#define yellow 11
+#define green 8
+#define red2 7
+#define green2 5
+#define sonar 4
+#define botao 6
+// tempo predefenido
+ unsigned long TimeVerde = 10000; // 10 segundos
+ unsigned long TimeAmarelo = 2000; // 2 segundos
+ unsigned long TimeVermelho = 15000; // 15 segundos
+ const unsigned long blinkInterval = 500;
+ int estado =2; // altera estado inicial do sinal
+ //controle do tempo botão
+ bool x=0;
+ int tempobt=0;
+ unsigned long tempo = 0;
+ // controle de tempo do sinal
+ unsigned long previousMillis = 0;
+ //controle do led sonar
+ bool blinkState = false;
+unsigned long previousBlinkMillis = 0;
+float dist;
+void ajuste() {
+  // Verifica se há dados disponíveis na porta serial
+  if (Serial.available() > 0) {
+    // Lê a entrada do usuário até que um caractere de nova linha ('\n') seja recebido
+    while (Serial.available()) {
+      char c = Serial.read();
+      
+      // Adiciona o caractere à variável 'entrada' se não for um caractere de nova linha
+      if (c != ';') {
+        entrada += c;
+        
+
+       
+       } 
+      
+ else {
+            if (entrada.indexOf("green")>0 ) {
+              
+      TimeVerde = entrada.toInt();
+      
+      }
+       else if (entrada.indexOf("yellow")>0) { // Verde
+
+      TimeAmarelo = entrada.toInt();
+       }
+      else if (entrada.indexOf("red")>0) { // Verde
+
+      TimeVermelho = entrada.toInt();
+        }
+         else if (entrada.indexOf("botoeira")>0) {
+          tempobt=entrada.toInt(); 
+        }
+        // Então, imprime a entrada e limpa a variável 'entrada' para a próxima entrada
+        Serial.print("Entrada recebida: "); Serial.print("tempo aplicado e cor: "); Serial.println(entrada);
+        entrada = ""; // Limpa a variável para a próxima entrada
+      }
+    }
+  }
+}
+void setup(){
+  Serial.begin(9600);   //iniciar comunicação serial
+  Serial.println("para alterar os timers do sinal altere por aqui!");Serial.println("EX: 500boeira; nesse caso o tempo de aperta a boteira sera de no minimo nesse intervalo de tem");
+  Serial.println("EX: 1000red; ou 500green; ou 2000yellow; esses altera o tempo de cada cor");
+  // defenindo pinos de entradas e saidas
+  pinMode(red,OUTPUT);
+  pinMode(yellow,OUTPUT);
+  pinMode(green,OUTPUT);
+  pinMode(red2,OUTPUT);
+  pinMode(green2,OUTPUT);
+  pinMode(trigger,OUTPUT); //aciona portas do sensor
+  pinMode(echo,INPUT);   //aciona portas do sensor
+  pinMode(botao, INPUT_PULLUP);  //aciona botão pedestre
+  
+}
+void loop(){  
+  ajuste(); 
+  digitalWrite(trigger,LOW);
+  delayMicroseconds(5);
+  digitalWrite(trigger,HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigger,LOW);
+  dist=pulseIn(echo,HIGH);
+  dist = dist/58;
+  unsigned long currentMillis = millis(); // Obtém o tempo atual em milissegundos
+  // Atualiza o estado do semáforo conforme o tempo passa
+
+  switch (estado) {
+    case 0: // Verde
+      digitalWrite(red, HIGH);
+      digitalWrite(yellow, LOW);
+      digitalWrite(green, LOW);
+      digitalWrite(red2, LOW);
+      digitalWrite(green2, HIGH);
+ if (x==1 && (millis()-tempo)>=tempobt){
+    estado=1;
+    x=0;
+   tempo=millis();
+   }
+      else if(digitalRead(botao)==LOW){
+      x=1;
+        
+         }
+       
+      else if (currentMillis - previousMillis >= TimeVerde) {
+          
+        
+        estado = 1; // Mudar para amarelo
+        previousMillis = currentMillis;
+      }
+   
+      break;
+    case 1: // Amarelo
+      digitalWrite(red, LOW);
+      digitalWrite(yellow, HIGH);
+      digitalWrite(green, LOW);
+      digitalWrite(red2, LOW);
+      digitalWrite(green2, HIGH);
+      if (currentMillis - previousMillis >= TimeAmarelo) {        
+            estado = 2; // Mudar para vermelho
+        previousMillis = currentMillis;
+      }
+      break;
+    case 2: // Vermelho
+      digitalWrite(red, LOW);
+      digitalWrite(yellow, LOW);
+      digitalWrite(green, HIGH);
+      digitalWrite(red2, HIGH);
+      digitalWrite(green2, LOW);
+      if (currentMillis - previousMillis >= TimeVermelho) {
+        estado = 0; // Mudar para verde
+        previousMillis = currentMillis;
+      }
+      break;
+    
+  }
+    if (dist<100 && estado == 2 && currentMillis - previousBlinkMillis >= blinkInterval) {
+    previousBlinkMillis = currentMillis;
+    blinkState = !blinkState; // Alterna o estado do LED
+    digitalWrite(sonar, blinkState ? HIGH : LOW);
+  } else if (estado != 2) { // Se o sinal não estiver vermelho, mantenha o LED extra desligado
+    digitalWrite(sonar, LOW);
+  }
+}
