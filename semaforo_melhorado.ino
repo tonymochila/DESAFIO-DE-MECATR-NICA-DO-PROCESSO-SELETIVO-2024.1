@@ -1,5 +1,5 @@
 // C++ code
-//
+//https://www.tinkercad.com/things/fNrAUGkKgFO-desafio-melhorado/editel?sharecode=Ri2WwbKEMt-ih2UHx0t7dgGs49A5ywtfD44G7LPpuI0
 const int trigger=3;
 const int echo=4;
 int dist;
